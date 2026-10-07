@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111310">
+    <title>ASCII Studio — Turn images into text art</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <main>
+        <section class="workspace" aria-label="ASCII art generator">
+          <div class="panel output-panel">
+            <div class="panel-heading output-heading">
+              <div>
+                <span class="step-label">01 / RESULTAT</span>
+                <span class="live-indicator" id="live-indicator" hidden>LIVE</span>
+                <span class="output-resolution" id="output-resolution" hidden></span>
+              </div>
+              <button class="icon-button" id="copy-button" type="button" aria-label="Copy ASCII art" title="Copy to clipboard" disabled>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v11A1.5 1.5 0 0 0 5.5 18H8" stroke="currentColor" stroke-width="1.6"/></svg>
+              </button>
+            </div>
+
+            <div class="artboard" id="artboard">
+              <div class="empty-state" id="empty-state">
+                <div class="empty-art" aria-hidden="true">
+                  <span> . : - = + * # % @</span>
+                  <span>  : - = + * # % @</span>
+                  <span>    . - = + * # %</span>
+                  <span>      : = + * # @</span>
+                  <span>        . + * # %</span>
+                  <span>          - * # @</span>
+                  <span>            : # %</span>
+                </div>
+              </div>
+              <pre id="ascii-output" aria-label="Editable ASCII art" contenteditable="true" role="textbox" aria-multiline="true" spellcheck="false" hidden></pre>
+            </div>
+            <div class="output-tools">
+              <div class="rotation-controls" role="group" aria-label="Playback and rotation controls">
+                <button class="rotate-button" id="rotate-left" type="button" aria-label="Rotate media left 90 degrees" title="Rotate left" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 10V5m0 5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m0-8 3 2m-3-2-3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="rotate-button" id="rotate-right" type="button" aria-label="Rotate media right 90 degrees" title="Rotate right" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 10a8 8 0 1 0-1 7m1-7V5m0 5h-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 8v8m0-8 3 2m-3-2-3 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="rotate-button playback-button" id="playback-toggle" type="button" aria-label="Play video" title="Play video" disabled>
+                  <svg class="play-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5.5v13l10-6.5-10-6.5Z" fill="currentColor" stroke="currentColor" stroke-linejoin="round"/></svg>
+                  <svg class="pause-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 6v12m8-12v12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <div class="video-timeline" id="video-timeline" hidden>
+                <div class="timeline-readout">
+                  <span>VIDEO FRAME</span>
+                  <output id="current-time">00:00.00</output>
+                  <span class="timeline-duration">/ <output id="video-duration">00:00.00</output></span>
+                </div>
+                <input id="timeline-slider" type="range" min="0" max="0" step="0.01" value="0" aria-label="Choose video frame">
+              </div>
+            </div>
+
+          </div>
+
+          <div class="panel source-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="step-label">02 / SOURCE</span>
+              </div>
+              <button class="text-button" id="change-image" type="button" hidden>Change image</button>
+            </div>
+
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose an image or drop one here">
+              <input id="image-input" type="file" accept="image/*,video/mp4,.mp4" hidden>
+              <div class="upload-prompt" id="upload-prompt">
+                <span class="upload-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+                <strong>Drop an image here</strong>
+                <span>or <span class="browse-link">browse files</span></span>
+                <small>Images up to 20 MB · MP4 up to 200 MB</small>
+              </div>
+              <canvas id="source-preview" aria-label="Selected source media preview" hidden></canvas>
+            </div>
+            <p class="error-message" id="error-message" role="alert" hidden></p>
+
+            <div class="source-settings-scroll" id="source-settings-scroll">
+              <label class="export-resolution-control" for="export-resolution">
+                <span>Export resolution</span>
+                <select id="export-resolution" aria-label="Export resolution">
+                  <option value="original">Original</option>
+                  <option value="hd">HD (1080p)</option>
+                  <option value="4k">4K (2160p)</option>
+                </select>
+                <small>Aspect ratio is preserved. Higher resolutions may upscale the source.</small>
+              </label>
+              <div class="video-posterize" id="video-posterize" hidden>
+                <label class="transparency-option invert-option" for="posterize-video">
+                  <span>Posterize video</span>
+                  <span class="toggle">
+                    <input id="posterize-video" type="checkbox">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <div class="range-control" id="posterize-rate-control" hidden>
+                  <div class="range-heading">
+                    <label for="posterize-frame-rate">Frames per second</label>
+                    <output id="posterize-frame-rate-value" for="posterize-frame-rate">12 fps</output>
+                  </div>
+                  <input id="posterize-frame-rate" type="range" min="1" max="24" step="1" value="12" aria-label="Posterized video frames per second">
+                </div>
+                <fieldset class="range-control video-bitrate-control" id="video-compression">
+                  <legend>MP4 compression</legend>
+                  <div class="compression-options">
+                    <label>
+                      <input type="radio" name="video-compression" value="high" aria-describedby="video-bitrate-hint">
+                      <span>High compression</span>
+                      <small>4 Mbps</small>
+                    </label>
+                    <label>
+                      <input type="radio" name="video-compression" value="medium" checked aria-describedby="video-bitrate-hint">
+                      <span>Medium compression</span>
+                      <small>12 Mbps</small>
+                    </label>
+                    <label>
+                      <input type="radio" name="video-compression" value="low" aria-describedby="video-bitrate-hint">
+                      <span>Low compression</span>
+                      <small>24 Mbps</small>
+                    </label>
+                  </div>
+                  <small class="bitrate-hint" id="video-bitrate-hint">High uses more compression; Low uses less. Bitrate is a target, so actual rate and file size depend on the content.</small>
+                  <output class="bitrate-hint video-export-stats" id="video-export-stats" aria-live="polite" hidden></output>
+                </fieldset>
+                <label class="transparency-option invert-option frame-color-option" for="random-frame-colors" title="Randomizes muted text and background colors for each frame. Higher MP4 bitrates can reduce color smearing.">
+                  <span>Randomize colors each frame</span>
+                  <span class="toggle">
+                    <input id="random-frame-colors" type="checkbox">
+                    <span class="toggle-track" aria-hidden="true"></span>
+                  </span>
+                </label>
+                <div class="range-control" id="random-color-hue-control" hidden>
+                  <label class="color-control" for="random-color-hue">
+                    <span>Hue influence (±45°)</span>
+                    <input id="random-color-hue" type="color" value="#ffffff" aria-label="Choose hue for random video colors">
+                  </label>
+                </div>
+              </div>
+
+              <div class="media-colors">
+              <label class="color-control" for="character-color">
+                <span>Character color</span>
+                <input id="character-color" type="color" value="#ffffff" aria-label="Choose character color">
+              </label>
+              <label class="color-control" for="background-color">
+                <span>Background color</span>
+                <input id="background-color" type="color" value="#15121a" aria-label="Choose background color">
+              </label>
+              <button class="random-colors-button" id="randomize-colors" type="button">Randomize colors</button>
+              </div>
+
+              <label class="transparency-option invert-option" for="remove-color">
+              <span>Remove a media color</span>
+              <span class="toggle">
+                <input id="remove-color" type="checkbox">
+                <span class="toggle-track" aria-hidden="true"></span>
+              </span>
+              </label>
+              <div class="remove-color-settings" id="remove-color-settings" hidden>
+              <label class="color-control" for="removed-color">
+                <span>Color to remove</span>
+                <input id="removed-color" type="color" value="#ffffff" aria-label="Choose media color to remove" disabled>
+              </label>
+              <div class="range-control">
+                <div class="range-heading">
+                  <label for="color-tolerance">Color tolerance</label>
+                  <output id="color-tolerance-value" for="color-tolerance">0</output>
+                </div>
+                <input id="color-tolerance" type="range" min="0" max="100" step="1" value="0" aria-label="Color removal tolerance" disabled>
+              </div>
+              </div>
+
+              <label class="style-control" for="ascii-style">
+              <span>ASCII style</span>
+              <select id="ascii-style" aria-label="ASCII style">
+                <option value="classic">Classic</option>
+                <option value="dense">Dense</option>
+                <option value="simple">Simple</option>
+                <option value="binary">Binary</option>
+                <option value="bitmap">Bitmap (stipple)</option>
+                <option value="geometric">Geometric pattern</option>
+                <option value="shading">Unicode shading</option>
+                <option value="japanese">Japanese</option>
+                <option value="braille">Braille</option>
+                <option value="emoji">Emoji</option>
+                <option value="custom">Custom</option>
+                <optgroup label="Fonts">
+                  <option value="font:angel-wish">Angel wish</option>
+                  <option value="font:hexcd">HEXCD</option>
+                  <option value="font:nokiafc22">Nokia FC22</option>
+                  <option value="font:parafuse">Parafuse</option>
+                  <option value="font:remain3kroyals">Remain3kRoyals</option>
+                  <option value="font:spaceship2100">Spaceship 2100</option>
+                </optgroup>
+              </select>
+              </label>
+              <label class="transparency-option invert-option" for="align-characters">
+                <span>Align characters to an invisible grid</span>
+                <span class="toggle">
+                  <input id="align-characters" type="checkbox">
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </span>
+              </label>
+              <label class="font-variant-control" id="font-variant-control" for="font-variant" hidden>
+              <span>Font style</span>
+              <select id="font-variant" aria-label="Font style"></select>
+              </label>
+              <label class="custom-ramp-control" id="custom-ramp-control" for="custom-ramp" hidden>
+              <span>Dark to light characters</span>
+              <input id="custom-ramp" type="text" value="@%#*+=-:. " maxlength="64" aria-label="Custom character ramp">
+              </label>
+
+              <div class="range-control">
+              <div class="range-heading">
+                <label for="character-density">Character density</label>
+                <output id="density-value" for="character-density">100</output>
+              </div>
+              <input id="character-density" type="range" min="25" max="200" step="5" value="100" aria-label="Character density">
+              </div>
+              <div class="range-control">
+              <div class="range-heading">
+                <label for="brightness-level">Brightness</label>
+                <output id="brightness-value" for="brightness-level">0</output>
+              </div>
+              <input id="brightness-level" type="range" min="-100" max="100" step="5" value="0" aria-label="Media brightness">
+              </div>
+              <div class="range-control">
+              <div class="range-heading">
+                <label for="contrast-level">Contrast</label>
+                <output id="contrast-value" for="contrast-level">100%</output>
+              </div>
+              <input id="contrast-level" type="range" min="0" max="200" step="5" value="100" aria-label="Media contrast">
+              </div>
+              <label class="transparency-option invert-option" for="invert-tones">
+              <span>Invert tones</span>
+              <span class="toggle">
+                <input id="invert-tones" type="checkbox">
+                <span class="toggle-track" aria-hidden="true"></span>
+              </span>
+              </label>
+            </div>
+
+            <div class="side-download">
+              <label class="transparency-option" id="transparency-option" for="transparent-background" hidden>
+                <span>Transparent background</span>
+                <span class="toggle">
+                  <input id="transparent-background" type="checkbox" checked>
+                  <span class="toggle-track" aria-hidden="true"></span>
+                </span>
+              </label>
+              <div class="export-row">
+                <select id="export-format" aria-label="Export format" disabled>
+                  <option value="txt">Plain text (.txt)</option>
+                  <option value="png">PNG image (.png)</option>
+                  <option value="jpeg">JPEG image (.jpeg)</option>
+                </select>
+                <button class="download-button" id="download-button" type="button" aria-label="Export file" title="Export file" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 16v4h14v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span class="sr-only">Export file</span>
+                </button>
+              </div>
+              <label class="export-label" id="frame-scope-label" for="frame-scope" hidden>Video frames</label>
+              <select id="frame-scope" hidden>
+                <option value="selected">Selected frame only</option>
+                <option value="all">All sampled frames (ZIP)</option>
+              </select>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div class="export-progress-screen" id="export-progress-screen" role="dialog" aria-modal="true" aria-labelledby="export-progress-title" aria-describedby="export-progress-message" tabindex="-1" hidden>
+      <div class="export-progress-card">
+        <span class="step-label">EXPORT IN PROGRESS</span>
+        <h2 id="export-progress-title">Preparing your file</h2>
+        <p id="export-progress-message" aria-live="polite">Starting export…</p>
+        <dl class="export-progress-details">
+          <div>
+            <dt>Dimensions</dt>
+            <dd id="export-dimensions">—</dd>
+          </div>
+          <div>
+            <dt>Bitrate target</dt>
+            <dd id="export-bitrate">—</dd>
+          </div>
+        </dl>
+        <div class="export-progress-track">
+          <div class="export-progress-fill" id="export-progress-fill"></div>
+        </div>
+        <div class="export-progress-readout">
+          <span id="export-progress-status">Preparing</span>
+          <output id="export-progress-percent" for="export-progress-bar">0%</output>
+        </div>
+        <span class="sr-only" id="export-progress-bar" role="progressbar" aria-label="Export progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></span>
+      </div>
+    </div>
+  </body>
+</html>
